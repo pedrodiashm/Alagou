@@ -1,0 +1,24 @@
+# Arquivos não necessários para o build nativo do app
+node_modules/
+.expo/
+dist/
+web-build/
+ios/
+android/
+
+# Backend/servidor e deploy AWS (não fazem parte do app RN)
+server/
+docker-compose.yml
+docker-compose.prod.yml
+nginx.conf
+Dockerfile.web
+scripts/
+GUIA_DEPLOY_AWS.md
+implementation_plan.md
+PROPOSTA_PROJETO.md
+
+# Git/gerais
+.git/
+*.log
+.env*.local
+.DS_Store

@@ -1,0 +1,87 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: alagou_mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Defina DB_ROOT_PASSWORD no .env}
+      MYSQL_DATABASE: ${DB_NAME:?Defina DB_NAME no .env}
+      MYSQL_USER: ${DB_USER:?Defina DB_USER no .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
+    command:
+      # Ajustes para rodar de forma leve (Free Tier 1–2 GB)
+      - "--innodb-buffer-pool-size=64M"
+      - "--innodb-log-buffer-size=8M"
+      - "--innodb-flush-log-at-trx-commit=1"
+      - "--max-connections=50"
+      - "--performance-schema=OFF"
+      - "--key-buffer-size=8M"
+      - "--table-open-cache=64"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - alagou_net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./server
+    container_name: alagou_backend
+    restart: always
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      HOST: 0.0.0.0
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:?Defina DB_USER no .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
+      DB_NAME: ${DB_NAME:?Defina DB_NAME no .env}
+      # Limita o heap do Node para caber confortavelmente no Free Tier
+      NODE_OPTIONS: "--max-old-space-size=256"
+    networks:
+      - alagou_net
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web_gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: alagou_web_gateway
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - alagou_net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+networks:
+  alagou_net:
+    driver: bridge
+
+volumes:
+  mariadb_data:
