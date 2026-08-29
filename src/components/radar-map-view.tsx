@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FloodAlert, UserLocation } from '@/types/alert';
@@ -23,14 +23,43 @@ export function RadarMapView({ alerts, userLocation, onSelectAlert, onUserLocati
   // Centro = userLocation
   const PIXELS_PER_DEGREE = 2000; // pixels por grau (escala usada nos marcadores)
 
-  // Sem GPS no navegador (HTTP), o toque no radar define a posição do usuário
-  const handleRadarPress = (e: any) => {
-    if (Platform.OS !== 'web' || !onUserLocationChange || !fieldSize) return;
-    const { locationX = 0, locationY = 0 } = e.nativeEvent;
-    const dLng = (locationX - fieldSize.width / 2) / PIXELS_PER_DEGREE;
-    const dLat = -(locationY - fieldSize.height / 2) / PIXELS_PER_DEGREE;
-    onUserLocationChange(userLocation.latitude + dLat, userLocation.longitude + dLng);
-  };
+  const radarRef = useRef<View | null>(null);
+  const userLocationRef = useRef(userLocation);
+  userLocationRef.current = userLocation;
+  const fieldSizeRef = useRef(fieldSize);
+  fieldSizeRef.current = fieldSize;
+
+  const applyTap = useCallback(
+    (locationX: number, locationY: number) => {
+      if (!onUserLocationChange) return;
+      const size = fieldSizeRef.current;
+      if (!size) return;
+      const dLng = (locationX - size.width / 2) / PIXELS_PER_DEGREE;
+      const dLat = -(locationY - size.height / 2) / PIXELS_PER_DEGREE;
+      onUserLocationChange(
+        userLocationRef.current.latitude + dLat,
+        userLocationRef.current.longitude + dLng
+      );
+    },
+    [onUserLocationChange]
+  );
+
+  // No web, o onPress do Pressable nem sempre entrega locationX/locationY,
+  // então capturamos as coordenadas direto do DOM (relativas ao radar).
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !onUserLocationChange) return;
+    const node = radarRef.current as unknown as HTMLElement | null;
+    if (!node) return;
+
+    const handlePointer = (e: PointerEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.('[data-testid]')) return;
+      const rect = node.getBoundingClientRect();
+      applyTap(e.clientX - rect.left, e.clientY - rect.top);
+    };
+
+    node.addEventListener('pointerup', handlePointer);
+    return () => node.removeEventListener('pointerup', handlePointer);
+  }, [onUserLocationChange, applyTap]);
 
   const activeAlerts = alerts.filter((a) => a.status === 'active');
 
@@ -50,8 +79,16 @@ export function RadarMapView({ alerts, userLocation, onSelectAlert, onUserLocati
 
       {/* Área do Radar */}
       <Pressable
+        ref={radarRef}
         onLayout={(e) => setFieldSize(e.nativeEvent.layout)}
-        onPress={handleRadarPress}
+        onPress={
+          Platform.OS === 'web'
+            ? undefined
+            : (e: any) => {
+                const { locationX = 0, locationY = 0 } = e.nativeEvent;
+                applyTap(locationX, locationY);
+              }
+        }
         style={[styles.radarField, { backgroundColor: scheme === 'dark' ? '#070B14' : '#F1F5F9' }]}
       >
         {/* Círculos Concêntricos de Distância */}
@@ -95,6 +132,7 @@ export function RadarMapView({ alerts, userLocation, onSelectAlert, onUserLocati
           return (
             <Pressable
               key={alert.id}
+              testID={`alertpin-${alert.id}`}
               onPress={() => {
                 setSelectedAlert(alert);
                 if (onSelectAlert) onSelectAlert(alert);
