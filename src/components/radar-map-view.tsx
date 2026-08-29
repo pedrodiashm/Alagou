@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, StyleSheet, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FloodAlert, UserLocation } from '@/types/alert';
 import { Colors, SeverityColors, Spacing } from '@/constants/theme';
@@ -10,16 +10,27 @@ interface RadarMapViewProps {
   alerts: FloodAlert[];
   userLocation: UserLocation;
   onSelectAlert?: (alert: FloodAlert) => void;
+  onUserLocationChange?: (latitude: number, longitude: number) => void;
 }
 
-export function RadarMapView({ alerts, userLocation, onSelectAlert }: RadarMapViewProps) {
+export function RadarMapView({ alerts, userLocation, onSelectAlert, onUserLocationChange }: RadarMapViewProps) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const [selectedAlert, setSelectedAlert] = useState<FloodAlert | null>(null);
+  const [fieldSize, setFieldSize] = useState<{ width: number; height: number } | null>(null);
 
   // Calcula offsets de posicionamento relativo no mapa de radar circular
   // Centro = userLocation
-  const RADAR_SCALE = 180; // pixels por grau aproximado
+  const PIXELS_PER_DEGREE = 2000; // pixels por grau (escala usada nos marcadores)
+
+  // Sem GPS no navegador (HTTP), o toque no radar define a posição do usuário
+  const handleRadarPress = (e: any) => {
+    if (Platform.OS !== 'web' || !onUserLocationChange || !fieldSize) return;
+    const { locationX = 0, locationY = 0 } = e.nativeEvent;
+    const dLng = (locationX - fieldSize.width / 2) / PIXELS_PER_DEGREE;
+    const dLat = -(locationY - fieldSize.height / 2) / PIXELS_PER_DEGREE;
+    onUserLocationChange(userLocation.latitude + dLat, userLocation.longitude + dLng);
+  };
 
   const activeAlerts = alerts.filter((a) => a.status === 'active');
 
@@ -38,7 +49,11 @@ export function RadarMapView({ alerts, userLocation, onSelectAlert }: RadarMapVi
       </View>
 
       {/* Área do Radar */}
-      <View style={[styles.radarField, { backgroundColor: scheme === 'dark' ? '#070B14' : '#F1F5F9' }]}>
+      <Pressable
+        onLayout={(e) => setFieldSize(e.nativeEvent.layout)}
+        onPress={handleRadarPress}
+        style={[styles.radarField, { backgroundColor: scheme === 'dark' ? '#070B14' : '#F1F5F9' }]}
+      >
         {/* Círculos Concêntricos de Distância */}
         <View style={[styles.radarRing, styles.ringLarge, { borderColor: colors.primary, opacity: 0.15 }]} />
         <View style={[styles.radarRing, styles.ringMedium, { borderColor: colors.primary, opacity: 0.25 }]} />
@@ -106,7 +121,13 @@ export function RadarMapView({ alerts, userLocation, onSelectAlert }: RadarMapVi
             </Pressable>
           );
         })}
-      </View>
+      </Pressable>
+
+      {Platform.OS === 'web' && onUserLocationChange && (
+        <ThemedText type="small" style={{ color: colors.textSecondary, marginTop: 6, textAlign: 'center' }}>
+          💡 Sem GPS no navegador: toque no radar para definir sua posição.
+        </ThemedText>
+      )}
 
       {/* Card de Detalhe Rápido do Alerta Selecionado no Radar */}
       {selectedAlert && (

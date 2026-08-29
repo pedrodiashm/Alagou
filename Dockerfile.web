@@ -1,19 +1,10 @@
-FROM node:20-alpine AS expo-builder
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci || npm install --legacy-peer-deps
-
-COPY . .
-
-# Compila o build estático do Expo Web (gera a pasta /app/dist)
-RUN npx expo export -p web
-
+# O build do Expo Web é feito na máquina de deploy (scripts/testar-ec2.sh),
+# que gera a pasta ./web-dist de forma determinística e estável.
+# Aqui apenas servimos o estático em nginx (sem Node/npm/expo na EC2).
 FROM nginx:1.27-alpine
 
 RUN rm -rf /usr/share/nginx/html/*
-COPY --from=expo-builder /app/dist /usr/share/nginx/html
+COPY web-dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

@@ -268,11 +268,11 @@ wss.on('connection', (ws: WebSocket, req) => {
 
       switch (message.type) {
         case 'CLIENT_REGISTER': {
-          const { deviceId, deviceName, latitude, longitude } = message.payload || {};
+          const { deviceId, deviceName, latitude, longitude, pushToken } = message.payload || {};
           if (deviceId) {
             clientDeviceId = deviceId;
           }
-          registerClientNode(ws, clientDeviceId, deviceName || 'Nó Móvel', latitude, longitude);
+          registerClientNode(ws, clientDeviceId, deviceName || 'Nó Móvel', latitude, longitude, pushToken);
 
           // Responde com confirmação de registro
           sendToClient(ws, {

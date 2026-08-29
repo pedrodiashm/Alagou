@@ -33,6 +33,7 @@ class DistributedSocketClient {
   private deviceName: string = '📱 Dispositivo Móvel';
   private currentLat: number | null = null;
   private currentLng: number | null = null;
+  private pushToken: string | null = null;
 
   private onAlertListeners: Set<AlertCallback> = new Set();
   private onResolvedListeners: Set<AlertResolvedCallback> = new Set();
@@ -46,6 +47,13 @@ class DistributedSocketClient {
 
   public getDeviceId(): string {
     return this.deviceId;
+  }
+
+  public setPushToken(token: string | null) {
+    this.pushToken = token;
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.sendRegistration();
+    }
   }
 
   public getStatus(): SocketStatus {
@@ -125,6 +133,7 @@ class DistributedSocketClient {
             deviceName: this.deviceName,
             latitude: this.currentLat,
             longitude: this.currentLng,
+            pushToken: this.pushToken || undefined,
           },
         })
       );

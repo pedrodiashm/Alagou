@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Alagou",
-    "slug": "Alagou",
+    "slug": "alagou",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.alagou.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -41,11 +42,26 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      "expo-location",
+      [
+        "expo-notifications",
+        {
+          "color": "#208AEF",
+          "defaultChannel": "alerts"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b6ec704f-310b-4b87-9eab-e06facac5df9"
+      }
+    },
+    "owner": "palagidima"
   }
 }

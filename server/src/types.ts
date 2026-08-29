@@ -45,6 +45,7 @@ export interface ClientNode {
   deviceName: string;
   latitude: number | null;
   longitude: number | null;
+  pushToken?: string;
   connectedAt: Date;
   lastHeartbeat: Date;
 }

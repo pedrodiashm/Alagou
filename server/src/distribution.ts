@@ -25,6 +25,43 @@ export interface DistributedPacketLog {
 const packetLogs: DistributedPacketLog[] = [];
 const MAX_PACKET_LOGS = 60;
 
+// Raio de notificação push por proximidade (1 km)
+export const NEARBY_PUSH_RADIUS_METERS = 1000;
+
+/**
+ * Envia uma notificação push (Expo Push Service) para um aparelho específico.
+ * Não requer credenciais: o token do app carrega a autorização.
+ */
+async function sendNearbyPush(token: string, alert: FloodAlert, distanceMeters: number) {
+  try {
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: token,
+        title: `🌊 Alagamento a ${formatDistance(distanceMeters)}`,
+        body: alert.title,
+        priority: 'high',
+        sound: 'default',
+        data: {
+          url: '/',
+          alertId: alert.id,
+          distanceMeters,
+        },
+      }),
+    });
+    const json: any = await res.json();
+    const pushResult = json.data?.[0];
+    if (pushResult?.status === 'error') {
+      console.warn('[Push] Falha ao enviar notificação:', pushResult.details || JSON.stringify(json));
+    } else {
+      console.log(`[Push] Enviado com sucesso para ${token.slice(0, 18)}... (${formatDistance(distanceMeters)} da origem)`);
+    }
+  } catch (e: any) {
+    console.warn('[Push] Erro ao enviar notificação:', e?.message || e);
+  }
+}
+
 export function addPacketLog(log: Omit<DistributedPacketLog, 'id' | 'timestamp'>) {
   const entry: DistributedPacketLog = {
     id: Math.random().toString(36).substring(2, 9),
@@ -49,7 +86,8 @@ export function registerClientNode(
   deviceId: string,
   deviceName: string,
   lat?: number,
-  lng?: number
+  lng?: number,
+  pushToken?: string
 ): ClientNode {
   const existing = connectedNodes.get(deviceId);
   const node: ClientNode = {
@@ -58,11 +96,16 @@ export function registerClientNode(
     deviceName: deviceName || `Nó Móvel (${deviceId.slice(0, 6)})`,
     latitude: lat ?? existing?.latitude ?? null,
     longitude: lng ?? existing?.longitude ?? null,
+    pushToken: pushToken || existing?.pushToken,
     connectedAt: existing?.connectedAt ?? new Date(),
     lastHeartbeat: new Date(),
   };
 
   connectedNodes.set(deviceId, node);
+
+  console.log(
+    `📡 [Registro] Nó "${node.deviceName}" conectado${node.pushToken ? ` com token de push (${node.pushToken.slice(0, 24)}...)` : ' SEM token de push (FCM/Firebase não configurado?)'}`
+  );
 
   addPacketLog({
     type: 'CLIENT_REGISTER',
@@ -194,7 +237,16 @@ export function broadcastNewAlert(alert: FloodAlert, originDeviceId?: string) {
       payload,
     };
 
-    sendToClient(client.ws, message);
+sendToClient(client.ws, message);
+
+    // Notificação push: só para nós com token a menos de 1km do alagamento
+    if (
+      distanceMeters !== undefined &&
+      distanceMeters <= NEARBY_PUSH_RADIUS_METERS &&
+      client.pushToken
+    ) {
+      sendNearbyPush(client.pushToken, alert, distanceMeters);
+    }
 
     addPacketLog({
       type: 'ALERT_BROADCAST',

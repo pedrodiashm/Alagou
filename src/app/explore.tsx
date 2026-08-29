@@ -15,7 +15,7 @@ export default function ExploreScreen() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
-  const { alerts, userLocation, stats, refreshAlerts } = useAlerts();
+  const { alerts, userLocation, stats, refreshAlerts, setUserLocationManual } = useAlerts();
 
   return (
     <ThemedView style={styles.container}>
@@ -41,7 +41,11 @@ export default function ExploreScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Radar Geoespacial */}
-          <RadarMapView alerts={alerts} userLocation={userLocation} />
+          <RadarMapView
+            alerts={alerts}
+            userLocation={userLocation}
+            onUserLocationChange={setUserLocationManual}
+          />
 
           {/* Monitor de Topologia e Pacotes Distribuídos */}
           <NetworkMonitor stats={stats} onSimulationTriggered={refreshAlerts} />

@@ -7,6 +7,7 @@ node_modules/
 .expo/
 dist/
 web-build/
+web-dist/
 expo-env.d.ts
 
 # Native
@@ -42,3 +43,7 @@ example
 # generated native folders
 /ios
 /android
+
+# Chave de serviço do Firebase (SEGREDO - nunca commitar)
+*-firebase-adminsdk-*.json
+google-services.json

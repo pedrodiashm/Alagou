@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, createContext, useContext, ReactNode } from 'react';
 import * as Location from 'expo-location';
 import { FloodAlert, UserLocation, CreateAlertInput, SystemStats } from '@/types/alert';
 import {
@@ -10,6 +10,10 @@ import {
   simulateAcademicScenario,
 } from '@/services/api';
 import { socketService, SocketStatus } from '@/services/socket';
+import {
+  configureNotifications,
+  registerForPushNotificationsAsync,
+} from '@/services/notifications';
 
 // Localização padrão de referência (Centro de São Paulo / Sé) caso GPS não esteja autorizado
 const DEFAULT_LOCATION: UserLocation = {
@@ -18,7 +22,7 @@ const DEFAULT_LOCATION: UserLocation = {
   address: '',
 };
 
-export function useAlerts() {
+export function useAlertsState() {
   const [alerts, setAlerts] = useState<FloodAlert[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -40,25 +44,37 @@ export function useAlerts() {
   const initLocation = useCallback(async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        setHasGpsPermission(true);
-        const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-
-        const newLoc: UserLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        };
-        setUserLocation(newLoc);
-        socketService.updateLocation(newLoc.latitude, newLoc.longitude);
-      } else {
+      if (status !== 'granted') {
         setHasGpsPermission(false);
+        return;
       }
+
+      setHasGpsPermission(true);
+      let position: Location.LocationObject | null = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      if (!position?.coords) {
+        position = await Location.getLastKnownPositionAsync();
+      }
+      if (!position?.coords) return;
+
+      const newLoc: UserLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      };
+      setUserLocation(newLoc);
+      socketService.updateLocation(newLoc.latitude, newLoc.longitude);
     } catch (err) {
       console.warn('Não foi possível obter GPS:', err);
     }
+  }, []);
+
+  // Define a localização manualmente (toque no radar / sem GPS no navegador)
+  const setUserLocationManual = useCallback((latitude: number, longitude: number) => {
+    const newLoc: UserLocation = { latitude, longitude, accuracy: null };
+    setUserLocation(newLoc);
+    socketService.updateLocation(latitude, longitude);
   }, []);
 
   // 2. Carrega Alertas da API
@@ -90,6 +106,13 @@ export function useAlerts() {
     initLocation();
 
     socketService.connect('📱 App Móvel Alagou', userLocation.latitude, userLocation.longitude);
+
+    // Configura notificações e registra o token de push (para alertas <1km mesmo com app fechado)
+    (async () => {
+      await configureNotifications();
+      const token = await registerForPushNotificationsAsync();
+      if (token) socketService.setPushToken(token);
+    })();
 
     const unsubStatus = socketService.subscribeStatus((status) => {
       setSocketStatus(status);
@@ -212,5 +235,24 @@ export function useAlerts() {
     refreshAlerts: () => loadAlerts(true),
     triggerSimulation,
     setUserLocation,
+    setUserLocationManual,
   };
+}
+
+export type AlertsContextValue = ReturnType<typeof useAlertsState>;
+
+const AlertsContext = createContext<AlertsContextValue | null>(null);
+
+export function AlertsProvider({ children }: { children: ReactNode }) {
+  const value = useAlertsState();
+  return <AlertsContext.Provider value={value}>{children}</AlertsContext.Provider>;
+}
+
+// Hook público: consome o contexto global de alertas/localização
+export function useAlerts(): AlertsContextValue {
+  const ctx = useContext(AlertsContext);
+  if (!ctx) {
+    throw new Error('useAlerts deve ser usado dentro de <AlertsProvider>');
+  }
+  return ctx;
 }

@@ -48,10 +48,19 @@ if [ -n "$PEM" ] && [ -f "$PEM" ]; then
 fi
 
 # -----------------------------------------------------------
-# 1. Empacotar o projeto (limpo)
+# 1. Build do front (Expo Web) na máquina local + empacotar
 # -----------------------------------------------------------
 TARBALL="/tmp/alagou.tar.gz"
-log "[1/5] Empacotando o projeto (sem node_modules/.git/dist)..."
+
+log "[1/5] Gerando o build estático do Expo Web (./web-dist)..."
+rm -rf web-dist
+npx expo export -p web --output-dir web-dist
+if [ ! -f web-dist/index.html ]; then
+  die "Build web falhou: web-dist/index.html nao foi gerado."
+fi
+log "  -> Web build OK: $(du -sh web-dist | cut -f1)"
+
+log "[2/5] Empacotando o projeto (sem node_modules/.git/dist)..."
 tar \
   --exclude='./node_modules' \
   --exclude='./.git' \
@@ -62,20 +71,20 @@ tar \
   -czf "$TARBALL" \
   app.json nginx.conf nginx.https.conf Dockerfile.web docker-compose.yml \
   docker-compose.prod.yml eas.json package.json package-lock.json \
-  tsconfig.json .dockerignore .easignore assets server src scripts
+  tsconfig.json .dockerignore .easignore assets server src scripts web-dist
 log "  -> Tarball criado: $TARBALL ($(du -h "$TARBALL" | cut -f1))"
 
 # -----------------------------------------------------------
-# 2. Enviar para a EC2
+# 3. Enviar para a EC2
 # -----------------------------------------------------------
-log "[2/5] Enviando para ${HOST}:/home/ubuntu/alagou.tar.gz ..."
+log "[3/5] Enviando para ${HOST}:/home/ubuntu/alagou.tar.gz ..."
 $SCP "$TARBALL" "ubuntu@${HOST}:/home/ubuntu/alagou.tar.gz" >/dev/null
 log "  -> Enviado."
 
 # -----------------------------------------------------------
 # 3. Extrair e subir o ambiente na EC2
 # -----------------------------------------------------------
-log "[3/5] Preparando diretório e subindo o ambiente na EC2..."
+log "[4/5] Preparando diretório e subindo o ambiente na EC2..."
 $SSH "ubuntu@${HOST}" 'bash -s' <<'REMOTE'
 set -euo pipefail
 sudo mkdir -p /home/ubuntu/alagou
@@ -136,7 +145,7 @@ sudo docker compose -f docker-compose.prod.yml up -d --build
 echo "REMOTE_BUILD_DONE"
 REMOTE
 
-log "[4/5] Build concluído na EC2. Aguardando serviços ficarem saudáveis..."
+log "[5/5] Build concluído na EC2. Aguardando serviços ficarem saudáveis..."
 
 # -----------------------------------------------------------
 # 4. Testes de verificação
