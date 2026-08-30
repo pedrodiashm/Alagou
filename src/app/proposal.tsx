@@ -100,7 +100,7 @@ export default function ProposalScreen() {
                   🌊 <ThemedText type="smallBold">Registrar novo alagamento</ThemedText> com GPS automático, nível da água e causa observada.
                 </ThemedText>
                 <ThemedText type="default" style={styles.bulletItem}>
-                  👁️ <ThemedText type="smallBold">Visualizar tempo de registro</ThemedText> com precisão temporal ("há 5 min").
+                  👁️ <ThemedText type="smallBold">Visualizar tempo de registro</ThemedText> com precisão temporal (“há 5 min”).
                 </ThemedText>
                 <ThemedText type="default" style={styles.bulletItem}>
                   ✅ <ThemedText type="smallBold">Marcar como resolvido / encerrado</ThemedText> quando o nível da água baixar.

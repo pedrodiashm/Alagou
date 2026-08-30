@@ -24,24 +24,15 @@ export function RadarMapView({ alerts, userLocation, onSelectAlert, onUserLocati
   const PIXELS_PER_DEGREE = 2000; // pixels por grau (escala usada nos marcadores)
 
   const radarRef = useRef<View | null>(null);
-  const userLocationRef = useRef(userLocation);
-  userLocationRef.current = userLocation;
-  const fieldSizeRef = useRef(fieldSize);
-  fieldSizeRef.current = fieldSize;
 
   const applyTap = useCallback(
     (locationX: number, locationY: number) => {
-      if (!onUserLocationChange) return;
-      const size = fieldSizeRef.current;
-      if (!size) return;
-      const dLng = (locationX - size.width / 2) / PIXELS_PER_DEGREE;
-      const dLat = -(locationY - size.height / 2) / PIXELS_PER_DEGREE;
-      onUserLocationChange(
-        userLocationRef.current.latitude + dLat,
-        userLocationRef.current.longitude + dLng
-      );
+      if (!onUserLocationChange || !fieldSize) return;
+      const dLng = (locationX - fieldSize.width / 2) / PIXELS_PER_DEGREE;
+      const dLat = -(locationY - fieldSize.height / 2) / PIXELS_PER_DEGREE;
+      onUserLocationChange(userLocation.latitude + dLat, userLocation.longitude + dLng);
     },
-    [onUserLocationChange]
+    [onUserLocationChange, userLocation.latitude, userLocation.longitude, fieldSize]
   );
 
   // No web, o onPress do Pressable nem sempre entrega locationX/locationY,

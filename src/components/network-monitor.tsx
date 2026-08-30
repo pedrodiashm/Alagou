@@ -112,7 +112,7 @@ export function NetworkMonitor({ stats, onSimulationTriggered }: NetworkMonitorP
             📱 Usuário A (Produtor)
           </ThemedText>
           <ThemedText type="small" style={{ fontSize: 9, color: colors.textSecondary }}>
-            Gera evento 🌊 "Alagamento"
+            Gera evento 🌊 “Alagamento”
           </ThemedText>
         </View>
 
@@ -209,7 +209,7 @@ export function NetworkMonitor({ stats, onSimulationTriggered }: NetworkMonitorP
         <ScrollView style={styles.logScrollView} nestedScrollEnabled showsVerticalScrollIndicator={false}>
           {packets.length === 0 ? (
             <ThemedText type="small" style={{ color: colors.textSecondary, fontStyle: 'italic', padding: 8 }}>
-              Aguardando pacotes ou clique em "Simular Fluxo"...
+              Aguardando pacotes ou clique em “Simular Fluxo”...
             </ThemedText>
           ) : (
             packets.slice(0, 8).map((p) => (

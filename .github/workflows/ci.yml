@@ -1,0 +1,102 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (Expo) - lint, typecheck, build web
+    runs-on: ubuntu-latest
+    env:
+      EXPO_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js 24 (recomendado para Expo SDK 57)
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint (eslint-config-expo)
+        run: npm run lint
+
+      - name: Typecheck (tsc)
+        run: npx tsc --noEmit
+
+      - name: Build do Expo Web (produção)
+        run: npx expo export -p web --output-dir web-dist
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+  server:
+    name: Servidor (Express/WS) - typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Instalar dependências do servidor
+        run: npm ci
+
+      - name: Typecheck do servidor
+        run: npm run typecheck
+
+  # Deploy automático para a EC2 somente após os checks passarem,
+  # em push para main (ou manual via workflow_dispatch).
+  #
+  # Secrets necessários no GitHub:
+  #   - EC2_SSH_KEY: conteúdo da chave privada (PEM) de acesso à EC2
+  # Opcional:
+  #   - Repo variable EC2_HOST (default: 18.119.128.199)
+  deploy:
+    name: Deploy na EC2
+    runs-on: ubuntu-latest
+    needs: [app, server]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    environment: production
+    env:
+      EXPO_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Preparar chave SSH da EC2
+        run: |
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$EC2_SSH_KEY" > "$HOME/.ssh/alagou-deploy.pem"
+          chmod 600 "$HOME/.ssh/alagou-deploy.pem"
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Deploy (build web local + upload + docker compose na EC2)
+        run: bash scripts/testar-ec2.sh "${{ vars.EC2_HOST || '18.119.128.199' }}" "$HOME/.ssh/alagou-deploy.pem"
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
