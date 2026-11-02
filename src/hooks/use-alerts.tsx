@@ -107,7 +107,7 @@ export function useAlertsState() {
 
     socketService.connect('📱 App Móvel Alagou', userLocation.latitude, userLocation.longitude);
 
-    // Configura notificações e registra o token de push (para alertas <1km mesmo com app fechado)
+    // Configura notificações e registra o token de push (para alertas <10km mesmo com app fechado)
     (async () => {
       await configureNotifications();
       const token = await registerForPushNotificationsAsync();

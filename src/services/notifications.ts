@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 
 const DEFAULT_CHANNEL_ID = 'alerts';
 
-export const NOTIFICATION_NEARBY_RADIUS_METERS = 1000;
+export const NOTIFICATION_NEARBY_RADIUS_METERS = 10000;
 
 /**
  * Configura o comportamento das notificações (mostrar banner/lista em foreground)

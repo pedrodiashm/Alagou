@@ -25,8 +25,8 @@ export interface DistributedPacketLog {
 const packetLogs: DistributedPacketLog[] = [];
 const MAX_PACKET_LOGS = 60;
 
-// Raio de notificação push por proximidade (1 km)
-export const NEARBY_PUSH_RADIUS_METERS = 1000;
+// Raio de notificação push por proximidade (10 km)
+export const NEARBY_PUSH_RADIUS_METERS = 10000;
 
 /**
  * Envia uma notificação push (Expo Push Service) para um aparelho específico.
@@ -215,7 +215,7 @@ export function broadcastNewAlert(alert: FloodAlert, originDeviceId?: string) {
         alert.longitude
       );
       distanceText = formatDistance(distanceMeters);
-      isNearby = distanceMeters <= 2000; // Considera próximo até 2km
+      isNearby = distanceMeters <= 10000; // Considera próximo até 10km
     }
 
     const payload: AlertBroadcastPayload = {
@@ -239,7 +239,7 @@ export function broadcastNewAlert(alert: FloodAlert, originDeviceId?: string) {
 
 sendToClient(client.ws, message);
 
-    // Notificação push: só para nós com token a menos de 1km do alagamento
+    // Notificação push: só para nós com token a menos de 10km do alagamento
     if (
       distanceMeters !== undefined &&
       distanceMeters <= NEARBY_PUSH_RADIUS_METERS &&

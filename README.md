@@ -10,7 +10,7 @@ Feito com "vibe coding": uma mistura de product thinking + código gerado por IA
 
 - **Alertas de alagamento em tempo real**: título, descrição, localização (lat/lng), endereço, severidade (`low`, `moderate`, `high`, `critical`), nível d'água e causa.
 - **Reporte colaborativo**: qualquer pessoa registra um alagamento ("Alagou!"); outras confirmam o alerta — um mini-consenso para evitar falso positivo.
-- **Notificações push por proximidade**: o servidor cobre todos os nós conectados a ≤ 1 km do foco com uma notificação push (FCM/Expo Push Service), mesmo com o app fechado. O produtor também é notificado.
+- **Notificações push por proximidade**: o servidor cobre todos os nós conectados a ≤ 10 km do foco com uma notificação push (FCM/Expo Push Service), mesmo com o app fechado. O produtor também é notificado.
 - **Geo-routing (Haversine)**: para cada alerta, o servidor calcula a distância exata até cada usuário conectado e envia a distância personalizada (`500m`, `800m`, `1.2 km`…).
 - **Tempo real via WebSocket**: novas alertas, resoluções e confirmações são difundidos instantaneamente (`ALERT_BROADCAST`, `ALERT_RESOLVED`, `ALERT_CONFIRMED`, `TOPOLOGY_UPDATE`), com reconexão automática e heartbeat.
 - **Radar geoespacial no mapa**: posição dos focos ao redor do usuário com toque-para-definir-posição na web (sem GPS fora de HTTPS).
@@ -75,7 +75,7 @@ Navegador (web) ─┼──▶ http://<IP_PUBLICO>            (porta 80)
 
 1. O app pede permissão e obtém um token do Expo Push Service (`registerForPushNotificationsAsync`).
 2. O token vai junto no registro do nó (`CLIENT_REGISTER`) pela WebSocket.
-3. Quando um alerta nasce, o servidor envia push aos nós com token a ≤ 1 km do foco (`NEARBY_PUSH_RADIUS_METERS`), incluindo o nó produtor — funciona com o app fechado. Zero credenciais no servidor.
+3. Quando um alerta nasce, o servidor envia push aos nós com token a ≤ 10 km do foco (`NEARBY_PUSH_RADIUS_METERS`), incluindo o nó produtor — funciona com o app fechado. Zero credenciais no servidor.
 
 ---
 
