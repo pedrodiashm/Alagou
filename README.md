@@ -2,7 +2,7 @@
 
 Sistema distribuído de **alertas de alagamento em tempo real**. Um app que mostra onde está alagado agora, deixa qualquer pessoa reportar um ponto de alagamento e sincroniza tudo na hora para quem está ao redor — no celular (Android) e na web.
 
-Feito com "vibe coding": uma mistura de product thinking + código gerado por IA + ajustes manuais, empilhado sobre um backend de sistemas distribuídos estilo acadêmico.
+Feito com "AI assisted": uma mistura de product thinking + AI Assisted Programming + ajustes manuais, empilhado sobre um backend de sistemas distribuídos estilo acadêmico.
 
 ---
 
