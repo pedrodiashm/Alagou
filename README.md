@@ -90,7 +90,7 @@ server/                  → backend Node/Express + WebSocket
   src/geo.ts             → Haversine + formatação de distância
   src/db/connection.ts   → MariaDB + auto-migração + seed
 src/                     → app Expo (React Native + Web)
-  app/                   → rotas (expo-router): index, explore, proposal
+  app/                   → rotas (expo-router): index, explore
   components/            → radar-map-view, cards, modal, network-monitor…
   services/api.ts        → cliente REST
   services/socket.ts     → cliente WebSocket (reconexão + heartbeat)

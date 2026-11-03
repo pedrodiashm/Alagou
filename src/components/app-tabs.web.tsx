@@ -31,12 +31,6 @@ export default function AppTabs() {
               Radar & Rede
             </TabButton>
           </TabTrigger>
-          <TabTrigger name="proposal" href={"/proposal" as any} asChild>
-            <TabButton>
-              <Ionicons name="school-outline" size={14} style={{ marginRight: 4 }} />
-              Proposta
-            </TabButton>
-          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>
